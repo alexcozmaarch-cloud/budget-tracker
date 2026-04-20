@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Budget Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -111,7 +111,58 @@ select option{background:#16161e;}
 
 /* Two col */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-@media(max-width:700px){.two-col{grid-template-columns:1fr;}.kpis{grid-template-columns:repeat(2,1fr);}.add-form{flex-direction:column;align-items:stretch;}.ff.fdt,.ff.fd,.ff.fc,.ff.fa{width:100%;min-width:0;}.ff{width:100%!important;}main{padding:12px;}.pbar{gap:12px;}.proj-bar{gap:12px;}.elh{display:none;}.erow{grid-template-columns:60px 1fr 80px 52px;}.erun{display:none;}}
+@media(max-width:700px){
+  /* Layout */
+  main{padding:10px;padding-bottom:80px;}
+  .two-col{grid-template-columns:1fr;}
+  /* Nav — hidden on mobile, replaced by bottom bar */
+  nav{display:none;}
+  /* Bottom nav bar */
+  #mobile-nav{display:flex;}
+  /* Header compact */
+  header{height:46px;padding:0 14px;}
+  .logo{font-size:12px;}
+  /* KPIs — 2 col, bigger values */
+  .kpis{grid-template-columns:repeat(2,1fr);}
+  .kpi-val{font-size:18px;}
+  /* Period/proj bars wrap tighter */
+  .pbar{gap:10px;padding:10px 12px;}
+  .proj-bar{gap:10px;padding:10px 12px;flex-wrap:wrap;}
+  .proj-item{min-width:calc(50% - 10px);}
+  /* Add form stacked */
+  .add-form{flex-direction:column;align-items:stretch;padding:10px 12px;gap:10px;}
+  .ff,.ff.fdt,.ff.fd,.ff.fc,.ff.fa{width:100%!important;min-width:0;}
+  .ff input,.ff select{font-size:16px;padding:12px 10px;} /* 16px prevents iOS zoom */
+  .btn-p{width:100%;justify-content:center;padding:13px;font-size:13px;}
+  /* Inputs — prevent iOS zoom (must be 16px+) */
+  input,select{font-size:16px!important;}
+  /* Rows — simplified */
+  .elh{display:none;}
+  .erow{grid-template-columns:56px 1fr 76px 52px;padding:10px 12px;}
+  .erun{display:none;}
+  .edesc-txt{font-size:14px;}
+  .eamt{font-size:13px;}
+  /* Category grid — single col on very small, 2 col otherwise */
+  .cat-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  /* Modal — full width on mobile */
+  .modal-box{width:100%;max-width:100%;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;padding:20px 16px 32px;}
+  .modal-overlay{align-items:flex-end;}
+  /* Chart smaller on mobile */
+  .chart-panel{padding:12px 10px;}
+  /* Pills wrap nicely */
+  .cat-filter-bar{gap:5px;}
+  .cat-pill{font-size:11px;padding:5px 10px;}
+  /* Toast at top on mobile (thumb reach) */
+  #toast{bottom:auto;top:56px;right:12px;left:12px;justify-content:center;}
+  /* Setup card */
+  .setup-card{padding:20px 16px;}
+  /* Section title */
+  .sec-title{font-size:9px;}
+}
+@media(max-width:380px){
+  .cat-grid{grid-template-columns:1fr;}
+  .kpis{grid-template-columns:1fr 1fr;}
+}
 
 /* Add form */
 .add-form{padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
@@ -204,9 +255,48 @@ select option{background:#16161e;}
 .cat-pill.active{border-color:currentColor;background:rgba(255,255,255,.07);}
 .cat-pill.all{border-color:var(--b2);}
 .cat-pill.all.active{border-color:var(--muted);color:var(--text);}
+/* Mobile bottom nav */
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--s1);border-top:1px solid var(--b1);z-index:300;align-items:stretch;}
+.mnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;transition:color .15s;padding:6px 0;}
+.mnav-btn.on{color:var(--green);}
+.mnav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+/* FAB — quick add button */
+#fab{display:none;position:fixed;bottom:70px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--green);color:#050a05;border:none;font-size:26px;line-height:1;cursor:pointer;z-index:400;box-shadow:0 4px 16px rgba(74,222,128,.4);align-items:center;justify-content:center;}
+@media(max-width:700px){#fab{display:flex;}}
 </style>
 </head>
 <body>
+
+<!-- MOBILE BOTTOM NAV -->
+<div id="mobile-nav">
+  <button class="mnav-btn on" onclick="go('dashboard');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dash
+  </button>
+  <button class="mnav-btn" onclick="go('credit');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    CC
+  </button>
+  <button class="mnav-btn" onclick="go('debit');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Debit
+  </button>
+  <button class="mnav-btn" onclick="go('categories');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+    Cats
+  </button>
+  <button class="mnav-btn" onclick="go('monthly');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Monthly
+  </button>
+  <button class="mnav-btn" onclick="go('settings');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</div>
+
+<!-- FAB quick-add -->
+<button id="fab" onclick="fabTap()" title="Quick add">+</button>
 
 <header>
   <div class="logo">◈ Budget Tracker</div>
@@ -849,6 +939,12 @@ function go(name){
   const t=document.getElementById('v-'+name); if(t) t.classList.add('on');
   TABS.forEach(t=>t.classList.remove('on'));
   const idx=NAV_MAP.indexOf(name); if(idx>=0) TABS[idx].classList.add('on');
+  // sync mobile nav
+  const mBtns=document.querySelectorAll('.mnav-btn');
+  mBtns.forEach(b=>b.classList.remove('on'));
+  const mIdx=NAV_MAP.indexOf(name); if(mIdx>=0&&mBtns[mIdx]) mBtns[mIdx].classList.add('on');
+  // scroll to top on page change
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ═══════════════════════════════════════
@@ -1581,6 +1677,33 @@ function renderCharts(){
 function buildCatSelects(){
   const opts='<option value="">— no category —</option>'+CATS.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
   ['cc-cat','dd-cat'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+}
+
+// ═══════════════════════════════════════
+//  MOBILE NAV
+// ═══════════════════════════════════════
+function mnavSet(btn){
+  document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function fabTap(){
+  // go to whichever add tab is most relevant
+  const cur=document.querySelector('.view.on');
+  if(cur&&cur.id==='v-debit') go('debit');
+  else go('credit');
+  // sync mobile nav
+  const idx={'v-credit':1,'v-debit':2}[cur&&cur.id]||1;
+  const btns=document.querySelectorAll('.mnav-btn');
+  document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('on'));
+  if(btns[idx]) btns[idx].classList.add('on');
+  // scroll add form into view
+  setTimeout(()=>{
+    const form=document.querySelector('.view.on .add-form');
+    if(form) form.scrollIntoView({behavior:'smooth',block:'start'});
+    const firstInput=form&&form.querySelector('input[type="text"]');
+    if(firstInput) firstInput.focus();
+  },100);
 }
 
 function init(){
