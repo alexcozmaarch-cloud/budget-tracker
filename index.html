@@ -290,6 +290,7 @@ select option{background:#16161e;}
 #fab{display:none;position:fixed;bottom:70px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--green);color:#050a05;border:none;font-size:26px;line-height:1;cursor:pointer;z-index:400;box-shadow:0 4px 16px rgba(74,222,128,.4);align-items:center;justify-content:center;}
 @media(max-width:700px){#fab{display:flex;}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -1856,6 +1857,7 @@ function getMyAvgPerCat(){
 }
 
 function renderInsights(){
+  if(!S.url){ document.getElementById('ins-scores').innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Connect to Google Sheets first — go to Settings.</div>'; return; }
   loadInsightProfile();
   const bench=getBenchmark();
   const spent=catSpending();
@@ -2106,6 +2108,5 @@ function init(){
 
 init();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </body>
 </html>
