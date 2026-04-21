@@ -1857,206 +1857,142 @@ function getMyAvgPerCat(){
 }
 
 function renderInsights(){
-  if(!S.url){ document.getElementById('ins-scores').innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Connect to Google Sheets first — go to Settings.</div>'; return; }
-  loadInsightProfile();
-  const bench=getBenchmark();
-  const spent=catSpending();
-  const myAvg=getMyAvgPerCat();
-  const allEntries=[...S.cc,...S.dd];
+  try{
+    if(!S.url){
+      document.getElementById('ins-scores').innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Connect to Google Sheets first — go to Settings.</div>';
+      return;
+    }
+    loadInsightProfile();
+    const bench=getBenchmark();
+    const spent=catSpending();
+    const myAvg=getMyAvgPerCat();
+    const allEntries=[...S.cc,...S.dd];
 
-  // ── Score cards ──
-  const totalSpent=Object.values(spent).reduce((s,v)=>s+Math.max(0,v),0);
-  const totalBench=Object.values(bench).reduce((s,v)=>s+v,0);
-  const savingsRate=S.budget>0?((S.budget-totalSpent)/S.budget*100):0;
-  const vsAvgPct=myAvg&&_monthlyData.length>1?(totalSpent/(_monthlyData.reduce((s,r)=>s+(parseFloat(r.total)||0),0)/_monthlyData.length)-1)*100:0;
+    // Score cards
+    const totalSpent=Object.values(spent).reduce((s,v)=>s+Math.max(0,v),0);
+    const totalBench=Object.values(bench).reduce((s,v)=>s+v,0);
+    const savingsRate=S.budget>0?((S.budget-totalSpent)/S.budget*100):0;
+    const nP=_monthlyData.length;
+    const avgTotal=nP>1?_monthlyData.reduce((s,r)=>s+(parseFloat(r.total)||0),0)/nP:0;
+    const vsAvgPct=nP>1&&avgTotal>0?((totalSpent/avgTotal)-1)*100:0;
 
-  const scoreStatus=(val,bench)=>{
-    const pct=bench>0?val/bench:1;
-    if(pct<0.8) return 'under';
-    if(pct<1.2) return 'normal';
-    return 'over';
-  };
+    const scoreStatus=(val,b)=>{ const p=b>0?val/b:1; return p<0.8?'under':p<1.2?'normal':'over'; };
+    const overallStatus=scoreStatus(totalSpent,totalBench);
+    const scores=[
+      {label:'vs Swiss Benchmark',val:(totalBench>0?(totalSpent/totalBench*100).toFixed(0):0)+'%',sub:'CHF '+totalSpent.toFixed(0)+' / benchmark CHF '+totalBench,status:overallStatus},
+      {label:'Savings Rate',val:savingsRate.toFixed(1)+'%',sub:'CHF '+Math.max(0,S.budget-totalSpent).toFixed(0)+' saved this period',status:savingsRate>=20?'under':savingsRate>=5?'normal':'over'},
+      {label:'vs Your Average',val:(nP>1?(vsAvgPct>0?'+':'')+vsAvgPct.toFixed(1)+'%':'Not enough data'),sub:nP>1?(nP+' periods recorded'):'Need 2+ periods',status:nP>1?(Math.abs(vsAvgPct)<15?'normal':vsAvgPct>0?'over':'under'):'normal'},
+    ];
+    document.getElementById('ins-scores').innerHTML=scores.map(s=>'<div class="ins-score '+s.status+'"><div class="ins-score-label">'+s.label+'</div><div class="ins-score-val">'+s.val+'</div><div class="ins-score-sub">'+s.sub+'</div></div>').join('');
 
-  const overallStatus=scoreStatus(totalSpent,totalBench);
-  const scores=[
-    {label:'vs Swiss Benchmark', val:(totalSpent/totalBench*100).toFixed(0)+'%', sub:`CHF ${totalSpent.toFixed(0)} / benchmark CHF ${totalBench}`, status:overallStatus},
-    {label:'Savings Rate', val:savingsRate.toFixed(1)+'%', sub:`CHF ${Math.max(0,S.budget-totalSpent).toFixed(0)} saved this period`, status:savingsRate>=20?'under':savingsRate>=5?'normal':'over'},
-    {label:'vs Your Average', val:(_monthlyData.length>1?(vsAvgPct>0?'+':'')+vsAvgPct.toFixed(1)+'%':'Not enough data'), sub:_monthlyData.length>1?`${_monthlyData.length} periods recorded`:'Need 2+ periods', status:_monthlyData.length>1?(Math.abs(vsAvgPct)<15?'normal':vsAvgPct>0?'over':'under'):'normal'},
-  ];
-  document.getElementById('ins-scores').innerHTML=scores.map(s=>`
-    <div class="ins-score ${s.status}">
-      <div class="ins-score-label">${s.label}</div>
-      <div class="ins-score-val">${s.val}</div>
-      <div class="ins-score-sub">${s.sub}</div>
-    </div>`).join('');
-
-  // ── Heatmap: day of week × category ──
-  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const catIds=CATS.filter(c=>c.id!=='refund').map(c=>c.id);
-  // build matrix [dayIdx][catId] = total
-  const matrix={};
-  days.forEach((_,di)=>{ matrix[di]={}; catIds.forEach(id=>{ matrix[di][id]=0; }); });
-  allEntries.filter(e=>parseFloat(e.amount)>0).forEach(e=>{
-    if(!e.date) return;
-    const d=new Date(e.date);
-    const di=(d.getDay()+6)%7; // Mon=0
-    const cat=e.cat||'extras';
-    if(matrix[di]&&matrix[di][cat]!==undefined) matrix[di][cat]+=parseFloat(e.amount)||0;
-  });
-  // find max for colour scaling
-  let maxVal=0;
-  days.forEach((_,di)=>catIds.forEach(id=>{ if(matrix[di][id]>maxVal) maxVal=matrix[di][id]; }));
-  const heatColor=(v)=>{
-    if(!maxVal||!v) return 'var(--b2)';
-    const pct=v/maxVal;
-    if(pct<0.25) return 'rgba(96,165,250,.25)';
-    if(pct<0.5)  return 'rgba(251,191,36,.4)';
-    if(pct<0.75) return 'rgba(248,113,113,.5)';
-    return 'rgba(248,113,113,.85)';
-  };
-  const heatCats=CATS.filter(c=>c.id!=='refund'&&catIds.includes(c.id));
-  let heatHtml=`<table class="heat-table"><thead><tr><th></th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
-  heatCats.forEach(c=>{
-    heatHtml+=`<tr><td style="color:${c.color};white-space:nowrap;padding:5px 8px">${c.icon} ${c.name}</td>`;
-    days.forEach((_,di)=>{
-      const v=matrix[di][c.id]||0;
-      heatHtml+=`<td style="background:${heatColor(v)};color:var(--text)">${v>0?v.toFixed(0):''}</td>`;
+    // Heatmap
+    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const catIds=CATS.filter(c=>c.id!=='refund').map(c=>c.id);
+    const matrix={};
+    days.forEach(function(_,di){ matrix[di]={}; catIds.forEach(function(id){ matrix[di][id]=0; }); });
+    allEntries.filter(function(e){ return parseFloat(e.amount)>0; }).forEach(function(e){
+      if(!e.date) return;
+      const d=new Date(e.date);
+      const di=(d.getDay()+6)%7;
+      const cat=e.cat||'extras';
+      if(matrix[di]&&matrix[di][cat]!==undefined) matrix[di][cat]+=parseFloat(e.amount)||0;
     });
-    heatHtml+='</tr>';
-  });
-  heatHtml+='</tbody></table>';
-  document.getElementById('ins-heatmap').innerHTML=heatHtml;
+    let maxVal=0;
+    days.forEach(function(_,di){ catIds.forEach(function(id){ if(matrix[di][id]>maxVal) maxVal=matrix[di][id]; }); });
+    function heatColor(v){ if(!maxVal||!v) return 'var(--b2)'; const p=v/maxVal; if(p<0.25) return 'rgba(96,165,250,.25)'; if(p<0.5) return 'rgba(251,191,36,.4)'; if(p<0.75) return 'rgba(248,113,113,.5)'; return 'rgba(248,113,113,.85)'; }
+    const heatCats=CATS.filter(function(c){ return c.id!=='refund'&&catIds.includes(c.id); });
+    let hh='<table class="heat-table"><thead><tr><th></th>'+days.map(function(d){ return '<th>'+d+'</th>'; }).join('')+'</tr></thead><tbody>';
+    heatCats.forEach(function(c){
+      hh+='<tr><td style="color:'+c.color+';white-space:nowrap;padding:5px 8px">'+c.icon+' '+c.name+'</td>';
+      days.forEach(function(_,di){ const v=matrix[di][c.id]||0; hh+='<td style="background:'+heatColor(v)+';color:var(--text)">'+(v>0?v.toFixed(0):'')+'</td>'; });
+      hh+='</tr>';
+    });
+    hh+='</tbody></table>';
+    document.getElementById('ins-heatmap').innerHTML=hh;
 
-  // ── Trends: per category period-over-period ──
-  const trendsEl=document.getElementById('ins-trends');
-  if(_monthlyData.length<2){
-    trendsEl.innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Need 2+ periods of data for trend analysis.</div>';
-  } else {
-    const periods=[..._monthlyData].sort((a,b)=>String(a.period).localeCompare(String(b.period)));
-    const last=periods[periods.length-1];
-    const prev=periods[periods.length-2];
-    trendsEl.innerHTML=CATS.filter(c=>c.id!=='refund').map(c=>{
-      const lastVal=c.id===S.sheet?(spent[c.id]||0):(parseFloat(last[c.id])||0);
-      const prevVal=parseFloat(prev[c.id])||0;
-      if(!lastVal&&!prevVal) return '';
-      const delta=lastVal-prevVal;
-      const deltaPct=prevVal>0?(delta/prevVal*100):0;
-      const arrow=Math.abs(deltaPct)<5?'→':delta>0?'↑':'↓';
-      const arrowColor=Math.abs(deltaPct)<5?'var(--muted)':delta>0?'var(--red)':'var(--green)';
-      return `<div class="trend-item">
-        <div class="trend-arrow" style="color:${arrowColor}">${arrow}</div>
-        <div>
-          <div class="trend-name">${c.icon} ${c.name}</div>
-          <div class="trend-val">${chf(lastVal)} · ${deltaPct>0?'+':''}${deltaPct.toFixed(0)}% vs prev</div>
-        </div>
-      </div>`;
-    }).filter(Boolean).join('');
-  }
+    // Trends
+    const trendsEl=document.getElementById('ins-trends');
+    if(nP<2){
+      trendsEl.innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Need 2+ periods of data for trend analysis.</div>';
+    } else {
+      const sortedP=[..._monthlyData].sort(function(a,b){ return String(a.period).localeCompare(String(b.period)); });
+      const last=sortedP[sortedP.length-1];
+      const prev=sortedP[sortedP.length-2];
+      trendsEl.innerHTML=CATS.filter(function(c){ return c.id!=='refund'; }).map(function(c){
+        const lastVal=last.period===S.sheet?(spent[c.id]||0):(parseFloat(last[c.id])||0);
+        const prevVal=parseFloat(prev[c.id])||0;
+        if(!lastVal&&!prevVal) return '';
+        const delta=lastVal-prevVal;
+        const dp=prevVal>0?(delta/prevVal*100):0;
+        const arrow=Math.abs(dp)<5?'\u2192':delta>0?'\u2191':'\u2193';
+        const ac=Math.abs(dp)<5?'var(--muted)':delta>0?'var(--red)':'var(--green)';
+        return '<div class="trend-item"><div class="trend-arrow" style="color:'+ac+'">'+arrow+'</div><div><div class="trend-name">'+c.icon+' '+c.name+'</div><div class="trend-val">'+chf(lastVal)+' \xb7 '+(dp>0?'+':'')+dp.toFixed(0)+'% vs prev</div></div></div>';
+      }).filter(Boolean).join('');
+    }
 
-  // ── Benchmark bar chart ──
-  const bCtx=document.getElementById('ins-bench-chart');
-  if(bCtx){
-    if(window._insBenchChart) window._insBenchChart.destroy();
-    const bCats=CATS.filter(c=>c.id!=='refund'&&(spent[c.id]||bench[c.id]));
-    window._insBenchChart=new Chart(bCtx,{
-      type:'bar',
-      data:{
-        labels:bCats.map(c=>c.icon+' '+c.name),
-        datasets:[
-          {label:'You (this period)',data:bCats.map(c=>Math.max(0,spent[c.id]||0)),backgroundColor:bCats.map(c=>c.color+'aa'),borderColor:bCats.map(c=>c.color),borderWidth:1.5,borderRadius:4},
-          {label:'Swiss Benchmark',data:bCats.map(c=>bench[c.id]||0),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.3)',borderWidth:1.5,borderRadius:4,borderDash:[4,3]},
-        ]
-      },
-      options:{
-        responsive:true,
-        plugins:{
-          legend:{labels:{color:'#62627a',font:{family:'DM Mono',size:10},boxWidth:10,padding:10}},
-          tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+chf(ctx.raw)}}
+    // Benchmark chart
+    const bCtx=document.getElementById('ins-bench-chart');
+    if(bCtx&&typeof Chart!=='undefined'){
+      if(window._insBenchChart) window._insBenchChart.destroy();
+      const bCats=CATS.filter(function(c){ return c.id!=='refund'&&((spent[c.id]||0)>0||(bench[c.id]||0)>0); });
+      window._insBenchChart=new Chart(bCtx,{
+        type:'bar',
+        data:{
+          labels:bCats.map(function(c){ return c.icon+' '+c.name; }),
+          datasets:[
+            {label:'You (this period)',data:bCats.map(function(c){ return Math.max(0,spent[c.id]||0); }),backgroundColor:bCats.map(function(c){ return c.color+'aa'; }),borderColor:bCats.map(function(c){ return c.color; }),borderWidth:1.5,borderRadius:4},
+            {label:'Swiss Benchmark',data:bCats.map(function(c){ return bench[c.id]||0; }),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.3)',borderWidth:1.5,borderRadius:4},
+          ]
         },
-        scales:{
-          x:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10}},grid:{color:'#1e1e28'}},
-          y:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10},callback:v=>'CHF '+v},grid:{color:'#1e1e28'}}
+        options:{
+          responsive:true,
+          plugins:{legend:{labels:{color:'#62627a',font:{family:'DM Mono',size:10},boxWidth:10,padding:10}},tooltip:{callbacks:{label:function(ctx){ return ctx.dataset.label+': '+chf(ctx.raw); }}}},
+          scales:{x:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10}},grid:{color:'#1e1e28'}},y:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10},callback:function(v){ return 'CHF '+v; }},grid:{color:'#1e1e28'}}}
         }
-      }
-    });
+      });
+    }
+
+  } catch(err){
+    console.error('renderInsights error:', err);
+    const el=document.getElementById('ins-scores');
+    if(el) el.innerHTML='<div style="color:var(--red);font-family:var(--mono);font-size:11px;grid-column:1/-1;background:var(--rbg);padding:12px;border-radius:6px;border:1px solid rgba(248,113,113,.3)">\u26a0 Insights error: '+err.message+'<br><br><span style="color:var(--muted)">Make sure data is synced (Dashboard \u2192 wait for Synced \u2713) then try again.</span></div>';
   }
 }
 
 async function runAIAnalysis(){
   const btn=document.getElementById('ai-btn');
   const out=document.getElementById('ai-output');
-  btn.disabled=true;
-  btn.textContent='Analysing…';
-  out.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><div class="spin"></div> Reading your spending patterns…</div>';
-
-  const p=getProfile();
-  const bench=getBenchmark();
-  const spent=catSpending();
-  const myAvg=getMyAvgPerCat();
-  const pd=periodBounds(S.sheet);
-  const totalSpent=Object.values(spent).reduce((s,v)=>s+Math.max(0,v),0);
-
-  // Build context summary for Claude
-  const catLines=CATS.filter(c=>c.id!=='refund').map(c=>{
-    const s=Math.max(0,spent[c.id]||0);
-    const b=bench[c.id]||0;
-    const avg=myAvg[c.id]||0;
-    const pct=b>0?((s/b-1)*100).toFixed(0):null;
-    return `- ${c.name}: CHF ${s.toFixed(0)} spent | benchmark CHF ${b} (${pct!==null?(pct>0?'+':'')+pct+'%':'no bench'}) | your avg CHF ${avg.toFixed(0)}`;
-  }).join('
-');
-
-  const nPeriods=_monthlyData.length;
-  const totalBench=Object.values(bench).reduce((s,v)=>s+v,0);
-  const savings=S.budget-totalSpent;
-  const savingsRate=S.budget>0?(savings/S.budget*100).toFixed(1):0;
-
-  const prompt=`You are a sharp, honest personal finance advisor. Analyse this person's spending and give actionable, specific insights. Be direct and concise — no fluff, no generic advice.
-
-PROFILE:
-- Age group: ${p.age}, household: ${p.hh}, monthly income: CHF ${p.income}
-- Budget per period: CHF ${S.budget} | Period: ${pd.label} (${pd.passed} of ${pd.total} days passed)
-- Periods tracked: ${nPeriods}
-
-CURRENT PERIOD SPENDING vs BENCHMARK:
-${catLines}
-
-SUMMARY:
-- Total spent: CHF ${totalSpent.toFixed(0)} vs budget CHF ${S.budget} vs benchmark CHF ${totalBench}
-- Savings this period: CHF ${savings.toFixed(0)} (${savingsRate}% rate)
-
-Write 4–5 short paragraphs covering:
-1. Overall spending health — are they under/over control?
-2. 2–3 specific categories where they stand out (good or bad)
-3. Behavioural pattern you notice (e.g. consistently over in X)
-4. One concrete action they should take this period
-5. One thing they're doing well
-
-Be specific with numbers. Format each paragraph clearly. Don't use bullet points inside paragraphs.`;
-
+  if(!btn||!out) return;
+  btn.disabled=true; btn.textContent='Analysing\u2026';
+  out.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><div class="spin"></div> Reading your spending patterns\u2026</div>';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
+    const p=getProfile();
+    const bench=getBenchmark();
+    const spent=catSpending();
+    const myAvg=getMyAvgPerCat();
+    const pd=periodBounds(S.sheet);
+    const totalSpent=Object.values(spent).reduce(function(s,v){ return s+Math.max(0,v); },0);
+    const totalBench=Object.values(bench).reduce(function(s,v){ return s+v; },0);
+    const savings=S.budget-totalSpent;
+    const savingsRate=S.budget>0?(savings/S.budget*100).toFixed(1):0;
+    const catLines=CATS.filter(function(c){ return c.id!=='refund'; }).map(function(c){
+      const s=Math.max(0,spent[c.id]||0);
+      const b=bench[c.id]||0;
+      const avg=myAvg[c.id]||0;
+      const pct=b>0?((s/b-1)*100).toFixed(0):null;
+      return '- '+c.name+': CHF '+s.toFixed(0)+' spent | benchmark CHF '+b+(pct!==null?' ('+(pct>0?'+':'')+pct+'%)':'')+' | your avg CHF '+avg.toFixed(0);
+    }).join('\n');
+    const prompt='You are a sharp, honest personal finance advisor. Analyse this spending and give actionable, specific insights. Be direct — no fluff, no generic advice.\n\nPROFILE:\n- Age: '+p.age+', household: '+p.hh+', income: CHF '+p.income+'/month\n- Budget: CHF '+S.budget+' | Period: '+pd.label+' ('+pd.passed+'/'+pd.total+' days)\n- Periods tracked: '+_monthlyData.length+'\n\nSPENDING vs BENCHMARK:\n'+catLines+'\n\nSUMMARY:\n- Total: CHF '+totalSpent.toFixed(0)+' vs budget CHF '+S.budget+' vs benchmark CHF '+totalBench+'\n- Saving: CHF '+savings.toFixed(0)+' ('+savingsRate+'%)\n\nWrite 4-5 short paragraphs: 1) overall health 2) 2-3 standout categories 3) behavioural pattern 4) one concrete action 5) one thing done well. Use specific numbers. No bullet points inside paragraphs.';
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
-    const text=data.content?.[0]?.text||'No response received.';
-    // render paragraphs
-    const paras=text.split(/
-
-+/).filter(p=>p.trim());
-    out.innerHTML=paras.map(p=>`<div class="ai-paragraph">${p.trim()}</div>`).join('');
+    const text=(data.content&&data.content[0]&&data.content[0].text)||'No response.';
+    out.innerHTML=text.split(/\n\n+/).filter(function(p){ return p.trim(); }).map(function(p){ return '<div class="ai-paragraph">'+p.trim()+'</div>'; }).join('');
   } catch(e){
-    out.innerHTML=`<div style="color:var(--red);font-family:var(--mono);font-size:12px">Analysis failed: ${e.message}</div>`;
+    out.innerHTML='<div style="color:var(--red);font-family:var(--mono);font-size:12px">Analysis failed: '+e.message+'</div>';
   }
-  btn.disabled=false;
-  btn.textContent='Analyse my spending';
+  btn.disabled=false; btn.textContent='Analyse my spending';
 }
+
 
 function buildCatSelects(){
   const opts='<option value="">— no category —</option>'+CATS.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
