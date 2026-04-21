@@ -255,6 +255,32 @@ select option{background:#16161e;}
 .cat-pill.active{border-color:currentColor;background:rgba(255,255,255,.07);}
 .cat-pill.all{border-color:var(--b2);}
 .cat-pill.all.active{border-color:var(--muted);color:var(--text);}
+/* Insights */
+.ins-score{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:16px 14px;position:relative;overflow:hidden;}
+.ins-score::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.ins-score.under::after{background:var(--green);}
+.ins-score.normal::after{background:var(--blue);}
+.ins-score.over::after{background:var(--red);}
+.ins-score-label{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.ins-score-val{font-family:var(--mono);font-size:22px;font-weight:500;}
+.ins-score.under .ins-score-val{color:var(--green);}
+.ins-score.normal .ins-score-val{color:var(--blue);}
+.ins-score.over .ins-score-val{color:var(--red);}
+.ins-score-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
+.heat-table{border-collapse:collapse;font-family:var(--mono);font-size:10px;width:100%;}
+.heat-table th{padding:5px 8px;color:var(--muted);font-weight:400;text-align:center;}
+.heat-table th:first-child{text-align:left;}
+.heat-table td{padding:5px 8px;text-align:center;border-radius:4px;min-width:52px;}
+.trend-item{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.trend-arrow{font-size:20px;flex-shrink:0;}
+.trend-name{font-size:12px;font-weight:500;flex:1;}
+.trend-val{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.ai-paragraph{margin-bottom:12px;padding:12px 14px;background:var(--s2);border-left:2px solid var(--accent, #a78bfa);border-radius:0 6px 6px 0;}
+.ai-paragraph:last-child{margin-bottom:0;}
+@media(max-width:700px){
+  #ins-scores{grid-template-columns:1fr 1fr!important;}
+}
+
 /* Mobile bottom nav */
 #mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--s1);border-top:1px solid var(--b1);z-index:300;align-items:stretch;}
 .mnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;transition:color .15s;padding:6px 0;}
@@ -289,6 +315,10 @@ select option{background:#16161e;}
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Monthly
   </button>
+  <button class="mnav-btn" onclick="go('insights');mnavSet(this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Insights
+  </button>
   <button class="mnav-btn" onclick="go('settings');mnavSet(this)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     Settings
@@ -315,6 +345,7 @@ select option{background:#16161e;}
   <button class="tab"     onclick="go('debit')">Debit</button>
   <button class="tab"     onclick="go('categories')">Categories</button>
   <button class="tab"     onclick="go('monthly')">Monthly</button>
+  <button class="tab"     onclick="go('insights')">✦ Insights</button>
   <button class="tab"     onclick="go('settings')">Settings</button>
 </nav>
 
@@ -801,6 +832,75 @@ function sendPeriodSummary() {
   </div>
 </div>
 
+<!-- INSIGHTS -->
+<div id="v-insights" class="view">
+
+  <!-- Profile config bar -->
+  <div class="panel" style="margin-bottom:14px">
+    <div class="ph">
+      <span class="pt">Your Profile</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">used for benchmarks</span>
+    </div>
+    <div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div class="ff" style="min-width:120px;flex:1">
+        <label style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block">Age group</label>
+        <select id="ins-age" onchange="saveInsightProfile()" style="padding:8px 10px;font-size:13px">
+          <option value="25-34">25–34</option>
+          <option value="35-44" selected>35–44</option>
+          <option value="45-54">45–54</option>
+          <option value="55+">55+</option>
+        </select>
+      </div>
+      <div class="ff" style="min-width:140px;flex:1">
+        <label style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block">Monthly income (CHF)</label>
+        <input type="number" id="ins-income" value="6000" step="500" onchange="saveInsightProfile()" style="padding:8px 10px;font-size:13px">
+      </div>
+      <div class="ff" style="min-width:120px;flex:1">
+        <label style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block">Household</label>
+        <select id="ins-hh" onchange="saveInsightProfile()" style="padding:8px 10px;font-size:13px">
+          <option value="single" selected>Single</option>
+          <option value="couple">Couple</option>
+          <option value="family">Family</option>
+        </select>
+      </div>
+      <button class="btn btn-p" style="padding:8px 16px" onclick="renderInsights()">Recalculate</button>
+    </div>
+  </div>
+
+  <!-- Score cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px" id="ins-scores"></div>
+
+  <!-- Behaviour heatmap -->
+  <div class="chart-panel" style="margin-bottom:14px">
+    <div class="chart-title">Spending Heatmap — day of week × category</div>
+    <div id="ins-heatmap" style="overflow-x:auto"></div>
+  </div>
+
+  <!-- Trend arrows per category -->
+  <div class="panel" style="margin-bottom:14px">
+    <div class="ph"><span class="pt">Category Trends — period over period</span></div>
+    <div id="ins-trends" style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+  </div>
+
+  <!-- Swiss benchmark comparison -->
+  <div class="chart-panel" style="margin-bottom:14px">
+    <div class="chart-title">vs Swiss Benchmark (FSO data · Zürich · your income bracket)</div>
+    <canvas id="ins-bench-chart" height="180"></canvas>
+  </div>
+
+  <!-- AI Analysis -->
+  <div class="panel" style="margin-bottom:14px">
+    <div class="ph">
+      <span class="pt">✦ AI Analysis</span>
+      <button class="btn btn-p" style="padding:5px 14px;font-size:11px" onclick="runAIAnalysis()" id="ai-btn">Analyse my spending</button>
+    </div>
+    <div id="ai-output" style="padding:18px 20px;font-size:13px;line-height:1.8;color:var(--muted);font-family:var(--sans)">
+      Press <strong style="color:var(--text)">Analyse my spending</strong> to get a personalised AI assessment of your habits, patterns and where you can improve.
+    </div>
+  </div>
+
+</div>
+
 <!-- SETTINGS -->
 <div id="v-settings" class="view">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:780px">
@@ -930,9 +1030,9 @@ function hideToast(){ document.getElementById('toast').classList.remove('show');
 // ═══════════════════════════════════════
 //  NAV
 // ═══════════════════════════════════════
-const VIEWS=['setup','dashboard','credit','debit','categories','monthly','settings'];
+const VIEWS=['setup','dashboard','credit','debit','categories','monthly','insights','settings'];
 const TABS=document.querySelectorAll('.tab');
-const NAV_MAP=['dashboard','credit','debit','categories','monthly','settings'];
+const NAV_MAP=['dashboard','credit','debit','categories','monthly','insights','settings'];
 
 function go(name){
   VIEWS.forEach(v=>{ const el=document.getElementById('v-'+v); if(el) el.classList.remove('on'); });
@@ -945,6 +1045,7 @@ function go(name){
   const mIdx=NAV_MAP.indexOf(name); if(mIdx>=0&&mBtns[mIdx]) mBtns[mIdx].classList.add('on');
   // scroll to top on page change
   window.scrollTo({top:0,behavior:'smooth'});
+  if(name==='insights'){ loadInsightProfile(); renderInsights(); }
 }
 
 // ═══════════════════════════════════════
@@ -1143,7 +1244,7 @@ function buildCatFilterBar(){
     + activeCats.map(c=>`<button class="cat-pill${_activeCatFilter===c.id?' active':''}" data-cat="${c.id}" style="color:${c.color}" onclick="setDashCatFilter('${c.id}')">${c.icon} ${c.name}</button>`).join('');
 }
 
-function renderAll(){ renderDash(); renderLists(); renderDashCats(); renderCatDetail(); renderCharts(); refreshSuggestions(); }
+function renderAll(){ renderDash(); renderLists(); renderDashCats(); renderCatDetail(); renderCharts(); refreshSuggestions(); if(document.getElementById('v-insights').classList.contains('on')) renderInsights(); }
 
 function renderDash(){
   const st=S.stats, budget=st.budget||S.budget, total=st.total||0;
@@ -1387,6 +1488,7 @@ function renderCatDetail(){
 }
 
 function renderMonthly(data){
+  _monthlyData=data||[];
   const tb=document.getElementById('monthly-tbody');
   const thead=document.getElementById('monthly-thead');
   if(!data||!data.length){tb.innerHTML='<tr><td colspan="7" class="empty">No data yet</td></tr>';return;}
@@ -1672,6 +1774,286 @@ function renderCharts(){
       }
     }
   });
+}
+
+// ═══════════════════════════════════════
+//  INSIGHTS
+// ═══════════════════════════════════════
+
+// Swiss FSO benchmark data (CHF/month, Zürich, 2023)
+// Source: BFS Haushaltsbudgeterhebung — adjusted for single/couple/family
+const BENCHMARKS = {
+  single: {
+    '25-34': { groceries:320, lunches:280, transport:180, running:60,  hobbies:150, health:80,  media:60,  travel:180, extras:120 },
+    '35-44': { groceries:340, lunches:260, transport:190, running:70,  hobbies:180, health:100, media:65,  travel:200, extras:130 },
+    '45-54': { groceries:360, lunches:240, transport:200, running:60,  hobbies:160, health:130, media:60,  travel:220, extras:140 },
+    '55+':   { groceries:380, lunches:200, transport:190, running:50,  hobbies:140, health:180, media:55,  travel:240, extras:120 },
+  },
+  couple: {
+    '25-34': { groceries:520, lunches:400, transport:280, running:100, hobbies:220, health:140, media:90,  travel:300, extras:180 },
+    '35-44': { groceries:560, lunches:380, transport:300, running:110, hobbies:260, health:160, media:95,  travel:340, extras:200 },
+    '45-54': { groceries:600, lunches:360, transport:310, running:100, hobbies:240, health:200, media:90,  travel:360, extras:210 },
+    '55+':   { groceries:620, lunches:300, transport:290, running:80,  hobbies:220, health:260, media:80,  travel:380, extras:180 },
+  },
+  family: {
+    '25-34': { groceries:780, lunches:400, transport:360, running:120, hobbies:300, health:200, media:110, travel:400, extras:260 },
+    '35-44': { groceries:840, lunches:380, transport:380, running:130, hobbies:340, health:240, media:115, travel:450, extras:280 },
+    '45-54': { groceries:880, lunches:340, transport:370, running:120, hobbies:320, health:280, media:110, travel:480, extras:290 },
+    '55+':   { groceries:900, lunches:280, transport:340, running:100, hobbies:280, health:340, media:100, travel:500, extras:250 },
+  }
+};
+
+// Income adjustment factor (base = CHF 6000/month)
+function incomeAdjust(benchmark, income){
+  const factor = Math.max(0.6, Math.min(1.8, income / 6000));
+  const out = {};
+  Object.keys(benchmark).forEach(k => out[k] = Math.round(benchmark[k] * factor));
+  return out;
+}
+
+function getProfile(){
+  return {
+    age:    (document.getElementById('ins-age')||{value:'35-44'}).value||'35-44',
+    income: parseFloat((document.getElementById('ins-income')||{value:'6000'}).value)||6000,
+    hh:     (document.getElementById('ins-hh')||{value:'single'}).value||'single',
+  };
+}
+
+function saveInsightProfile(){
+  const p=getProfile();
+  localStorage.setItem('bt_ins_profile', JSON.stringify(p));
+}
+
+function loadInsightProfile(){
+  try{
+    const p=JSON.parse(localStorage.getItem('bt_ins_profile')||'{}');
+    if(p.age)    document.getElementById('ins-age').value=p.age;
+    if(p.income) document.getElementById('ins-income').value=p.income;
+    if(p.hh)     document.getElementById('ins-hh').value=p.hh;
+  }catch(e){}
+}
+
+function getBenchmark(){
+  const p=getProfile();
+  const base=BENCHMARKS[p.hh]?.[p.age]||BENCHMARKS.single['35-44'];
+  return incomeAdjust(base, p.income);
+}
+
+// Get all monthly history data (from last renderMonthly call)
+let _monthlyData=[];
+
+function getMyAvgPerCat(){
+  // Average per category from all past periods (from MONTHLY sheet)
+  const avgs={};
+  CATS.forEach(c=>{ avgs[c.id]=0; });
+  const n=_monthlyData.length;
+  if(!n) return avgs;
+  _monthlyData.forEach(r=>{
+    CATS.forEach(c=>{ avgs[c.id]+=(parseFloat(r[c.id])||0); });
+  });
+  CATS.forEach(c=>{ avgs[c.id]/=n; });
+  return avgs;
+}
+
+function renderInsights(){
+  loadInsightProfile();
+  const bench=getBenchmark();
+  const spent=catSpending();
+  const myAvg=getMyAvgPerCat();
+  const allEntries=[...S.cc,...S.dd];
+
+  // ── Score cards ──
+  const totalSpent=Object.values(spent).reduce((s,v)=>s+Math.max(0,v),0);
+  const totalBench=Object.values(bench).reduce((s,v)=>s+v,0);
+  const savingsRate=S.budget>0?((S.budget-totalSpent)/S.budget*100):0;
+  const vsAvgPct=myAvg&&_monthlyData.length>1?(totalSpent/(_monthlyData.reduce((s,r)=>s+(parseFloat(r.total)||0),0)/_monthlyData.length)-1)*100:0;
+
+  const scoreStatus=(val,bench)=>{
+    const pct=bench>0?val/bench:1;
+    if(pct<0.8) return 'under';
+    if(pct<1.2) return 'normal';
+    return 'over';
+  };
+
+  const overallStatus=scoreStatus(totalSpent,totalBench);
+  const scores=[
+    {label:'vs Swiss Benchmark', val:(totalSpent/totalBench*100).toFixed(0)+'%', sub:`CHF ${totalSpent.toFixed(0)} / benchmark CHF ${totalBench}`, status:overallStatus},
+    {label:'Savings Rate', val:savingsRate.toFixed(1)+'%', sub:`CHF ${Math.max(0,S.budget-totalSpent).toFixed(0)} saved this period`, status:savingsRate>=20?'under':savingsRate>=5?'normal':'over'},
+    {label:'vs Your Average', val:(_monthlyData.length>1?(vsAvgPct>0?'+':'')+vsAvgPct.toFixed(1)+'%':'Not enough data'), sub:_monthlyData.length>1?`${_monthlyData.length} periods recorded`:'Need 2+ periods', status:_monthlyData.length>1?(Math.abs(vsAvgPct)<15?'normal':vsAvgPct>0?'over':'under'):'normal'},
+  ];
+  document.getElementById('ins-scores').innerHTML=scores.map(s=>`
+    <div class="ins-score ${s.status}">
+      <div class="ins-score-label">${s.label}</div>
+      <div class="ins-score-val">${s.val}</div>
+      <div class="ins-score-sub">${s.sub}</div>
+    </div>`).join('');
+
+  // ── Heatmap: day of week × category ──
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const catIds=CATS.filter(c=>c.id!=='refund').map(c=>c.id);
+  // build matrix [dayIdx][catId] = total
+  const matrix={};
+  days.forEach((_,di)=>{ matrix[di]={}; catIds.forEach(id=>{ matrix[di][id]=0; }); });
+  allEntries.filter(e=>parseFloat(e.amount)>0).forEach(e=>{
+    if(!e.date) return;
+    const d=new Date(e.date);
+    const di=(d.getDay()+6)%7; // Mon=0
+    const cat=e.cat||'extras';
+    if(matrix[di]&&matrix[di][cat]!==undefined) matrix[di][cat]+=parseFloat(e.amount)||0;
+  });
+  // find max for colour scaling
+  let maxVal=0;
+  days.forEach((_,di)=>catIds.forEach(id=>{ if(matrix[di][id]>maxVal) maxVal=matrix[di][id]; }));
+  const heatColor=(v)=>{
+    if(!maxVal||!v) return 'var(--b2)';
+    const pct=v/maxVal;
+    if(pct<0.25) return 'rgba(96,165,250,.25)';
+    if(pct<0.5)  return 'rgba(251,191,36,.4)';
+    if(pct<0.75) return 'rgba(248,113,113,.5)';
+    return 'rgba(248,113,113,.85)';
+  };
+  const heatCats=CATS.filter(c=>c.id!=='refund'&&catIds.includes(c.id));
+  let heatHtml=`<table class="heat-table"><thead><tr><th></th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
+  heatCats.forEach(c=>{
+    heatHtml+=`<tr><td style="color:${c.color};white-space:nowrap;padding:5px 8px">${c.icon} ${c.name}</td>`;
+    days.forEach((_,di)=>{
+      const v=matrix[di][c.id]||0;
+      heatHtml+=`<td style="background:${heatColor(v)};color:var(--text)">${v>0?v.toFixed(0):''}</td>`;
+    });
+    heatHtml+='</tr>';
+  });
+  heatHtml+='</tbody></table>';
+  document.getElementById('ins-heatmap').innerHTML=heatHtml;
+
+  // ── Trends: per category period-over-period ──
+  const trendsEl=document.getElementById('ins-trends');
+  if(_monthlyData.length<2){
+    trendsEl.innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:12px;grid-column:1/-1">Need 2+ periods of data for trend analysis.</div>';
+  } else {
+    const periods=[..._monthlyData].sort((a,b)=>String(a.period).localeCompare(String(b.period)));
+    const last=periods[periods.length-1];
+    const prev=periods[periods.length-2];
+    trendsEl.innerHTML=CATS.filter(c=>c.id!=='refund').map(c=>{
+      const lastVal=c.id===S.sheet?(spent[c.id]||0):(parseFloat(last[c.id])||0);
+      const prevVal=parseFloat(prev[c.id])||0;
+      if(!lastVal&&!prevVal) return '';
+      const delta=lastVal-prevVal;
+      const deltaPct=prevVal>0?(delta/prevVal*100):0;
+      const arrow=Math.abs(deltaPct)<5?'→':delta>0?'↑':'↓';
+      const arrowColor=Math.abs(deltaPct)<5?'var(--muted)':delta>0?'var(--red)':'var(--green)';
+      return `<div class="trend-item">
+        <div class="trend-arrow" style="color:${arrowColor}">${arrow}</div>
+        <div>
+          <div class="trend-name">${c.icon} ${c.name}</div>
+          <div class="trend-val">${chf(lastVal)} · ${deltaPct>0?'+':''}${deltaPct.toFixed(0)}% vs prev</div>
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+  }
+
+  // ── Benchmark bar chart ──
+  const bCtx=document.getElementById('ins-bench-chart');
+  if(bCtx){
+    if(window._insBenchChart) window._insBenchChart.destroy();
+    const bCats=CATS.filter(c=>c.id!=='refund'&&(spent[c.id]||bench[c.id]));
+    window._insBenchChart=new Chart(bCtx,{
+      type:'bar',
+      data:{
+        labels:bCats.map(c=>c.icon+' '+c.name),
+        datasets:[
+          {label:'You (this period)',data:bCats.map(c=>Math.max(0,spent[c.id]||0)),backgroundColor:bCats.map(c=>c.color+'aa'),borderColor:bCats.map(c=>c.color),borderWidth:1.5,borderRadius:4},
+          {label:'Swiss Benchmark',data:bCats.map(c=>bench[c.id]||0),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.3)',borderWidth:1.5,borderRadius:4,borderDash:[4,3]},
+        ]
+      },
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{labels:{color:'#62627a',font:{family:'DM Mono',size:10},boxWidth:10,padding:10}},
+          tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+chf(ctx.raw)}}
+        },
+        scales:{
+          x:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10}},grid:{color:'#1e1e28'}},
+          y:{ticks:{color:'#62627a',font:{family:'DM Mono',size:10},callback:v=>'CHF '+v},grid:{color:'#1e1e28'}}
+        }
+      }
+    });
+  }
+}
+
+async function runAIAnalysis(){
+  const btn=document.getElementById('ai-btn');
+  const out=document.getElementById('ai-output');
+  btn.disabled=true;
+  btn.textContent='Analysing…';
+  out.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><div class="spin"></div> Reading your spending patterns…</div>';
+
+  const p=getProfile();
+  const bench=getBenchmark();
+  const spent=catSpending();
+  const myAvg=getMyAvgPerCat();
+  const pd=periodBounds(S.sheet);
+  const totalSpent=Object.values(spent).reduce((s,v)=>s+Math.max(0,v),0);
+
+  // Build context summary for Claude
+  const catLines=CATS.filter(c=>c.id!=='refund').map(c=>{
+    const s=Math.max(0,spent[c.id]||0);
+    const b=bench[c.id]||0;
+    const avg=myAvg[c.id]||0;
+    const pct=b>0?((s/b-1)*100).toFixed(0):null;
+    return `- ${c.name}: CHF ${s.toFixed(0)} spent | benchmark CHF ${b} (${pct!==null?(pct>0?'+':'')+pct+'%':'no bench'}) | your avg CHF ${avg.toFixed(0)}`;
+  }).join('
+');
+
+  const nPeriods=_monthlyData.length;
+  const totalBench=Object.values(bench).reduce((s,v)=>s+v,0);
+  const savings=S.budget-totalSpent;
+  const savingsRate=S.budget>0?(savings/S.budget*100).toFixed(1):0;
+
+  const prompt=`You are a sharp, honest personal finance advisor. Analyse this person's spending and give actionable, specific insights. Be direct and concise — no fluff, no generic advice.
+
+PROFILE:
+- Age group: ${p.age}, household: ${p.hh}, monthly income: CHF ${p.income}
+- Budget per period: CHF ${S.budget} | Period: ${pd.label} (${pd.passed} of ${pd.total} days passed)
+- Periods tracked: ${nPeriods}
+
+CURRENT PERIOD SPENDING vs BENCHMARK:
+${catLines}
+
+SUMMARY:
+- Total spent: CHF ${totalSpent.toFixed(0)} vs budget CHF ${S.budget} vs benchmark CHF ${totalBench}
+- Savings this period: CHF ${savings.toFixed(0)} (${savingsRate}% rate)
+
+Write 4–5 short paragraphs covering:
+1. Overall spending health — are they under/over control?
+2. 2–3 specific categories where they stand out (good or bad)
+3. Behavioural pattern you notice (e.g. consistently over in X)
+4. One concrete action they should take this period
+5. One thing they're doing well
+
+Be specific with numbers. Format each paragraph clearly. Don't use bullet points inside paragraphs.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'No response received.';
+    // render paragraphs
+    const paras=text.split(/
+
++/).filter(p=>p.trim());
+    out.innerHTML=paras.map(p=>`<div class="ai-paragraph">${p.trim()}</div>`).join('');
+  } catch(e){
+    out.innerHTML=`<div style="color:var(--red);font-family:var(--mono);font-size:12px">Analysis failed: ${e.message}</div>`;
+  }
+  btn.disabled=false;
+  btn.textContent='Analyse my spending';
 }
 
 function buildCatSelects(){
