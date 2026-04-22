@@ -683,7 +683,7 @@ function sendPeriodSummary() {
     <div class="kpi b"><div class="kpi-lbl">Budget</div><div class="kpi-val" id="k-budget">–</div><div class="kpi-sub" id="k-budget-d">–</div></div>
     <div class="kpi" id="kc-spent"><div class="kpi-lbl">Total Spent</div><div class="kpi-val" id="k-spent">–</div><div class="kpi-sub" id="k-spent-p">–</div></div>
     <div class="kpi" id="kc-remain"><div class="kpi-lbl">Remaining</div><div class="kpi-val" id="k-remain">–</div><div class="kpi-sub" id="k-remain-d">–</div></div>
-    <div class="kpi" id="kc-saving"><div class="kpi-lbl">Net Saving</div><div class="kpi-val" id="k-saving">–</div><div class="kpi-sub">this period</div></div>
+    <div class="kpi" id="kc-saving"><div class="kpi-lbl">Net Saving</div><div class="kpi-val" id="k-saving">–</div><div class="kpi-sub" id="k-saving-sub">this period</div></div>
     <div class="kpi"><div class="kpi-lbl">Credit Card</div><div class="kpi-val" id="k-cc">–</div><div class="kpi-sub" id="k-cc-d">–</div></div>
     <div class="kpi"><div class="kpi-lbl">Debit</div><div class="kpi-val" id="k-dd">–</div><div class="kpi-sub">direct charges</div></div>
   </div>
@@ -1297,7 +1297,7 @@ function renderDash(){
   const overBudget = projTotal > budget;
   const nearBudget = projTotal > budget * 0.9;
 
-  document.getElementById('proj-daily').textContent = chf(dailyRate) + ' /day';
+  document.getElementById('proj-daily').textContent = chf(dailyRate) + ' /day (net)';
   document.getElementById('proj-total').textContent = chf(projTotal);
   document.getElementById('proj-saving').textContent = chf(projSaving);
 
@@ -1534,8 +1534,8 @@ function renderMonthly(data){
   const rows=sorted.map(r=>{
     const cur=r.period===S.sheet;
     const total=parseFloat(r.total)||0;
-    const budget=parseFloat(r.budget)||S.budget;
-    const saving=parseFloat(r.saving)||0;
+    const budget=cur?S.budget:(parseFloat(r.budget)||S.budget);
+    const saving=cur?(S.budget-total):(parseFloat(r.saving)||0);
     const vsB=total-budget;
     const catCells=CATS.map(c=>{
       if(cur){const v=curSpent[c.id]||0;return '<td class="num" style="color:'+c.color+'">'+(v>0?chf(v):'—')+'</td>';}
