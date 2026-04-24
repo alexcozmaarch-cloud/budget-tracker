@@ -771,7 +771,10 @@ function sendPeriodSummary() {
   <div class="panel">
     <div class="ph">
       <span class="pt">Credit Card Log</span>
-      <span class="badge" id="cc-count">0</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge" id="cc-count">0</span>
+        <button class="btn btn-g" style="padding:4px 10px;font-size:10px" onclick="exportCSV('CC')">↓ CSV</button>
+      </div>
     </div>
     <div style="padding:8px 16px;border-bottom:1px solid var(--b1)">
       <input type="text" id="cc-search" placeholder="Search descriptions…" oninput="filterList('cc')"
@@ -806,7 +809,10 @@ function sendPeriodSummary() {
   <div class="panel">
     <div class="ph">
       <span class="pt">Debit Log</span>
-      <span class="badge" id="dd-count">0</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge" id="dd-count">0</span>
+        <button class="btn btn-g" style="padding:4px 10px;font-size:10px" onclick="exportCSV('DD')">↓ CSV</button>
+      </div>
     </div>
     <div style="padding:8px 16px;border-bottom:1px solid var(--b1)">
       <input type="text" id="dd-search" placeholder="Search descriptions…" oninput="filterList('dd')"
@@ -977,6 +983,17 @@ function sendPeriodSummary() {
     <div class="modal-actions">
       <button class="btn btn-g" onclick="closeEditModal()">Cancel</button>
       <button class="btn btn-p" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERIOD COMPARISON MODAL -->
+<div class="modal-overlay" id="periodModal">
+  <div class="modal-box" style="width:560px;max-width:96vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">Period Comparison</div>
+    <div id="period-modal-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-g" onclick="document.getElementById('periodModal').classList.remove('open')">Close</button>
     </div>
   </div>
 </div>
@@ -1278,6 +1295,95 @@ function buildCatFilterBar(){
   if(!activeCats.length){ bar.innerHTML=''; return; }
   bar.innerHTML = `<button class="cat-pill all${!_activeCatFilter?' active':''}" data-cat="all" onclick="setDashCatFilter(null)">All</button>`
     + activeCats.map(c=>`<button class="cat-pill${_activeCatFilter===c.id?' active':''}" data-cat="${c.id}" style="color:${c.color}" onclick="setDashCatFilter('${c.id}')">${c.icon} ${c.name}</button>`).join('');
+}
+
+// ═══════════════════════════════════════
+//  PERIOD COMPARISON MODAL
+// ═══════════════════════════════════════
+function openPeriodComparison(period){
+  const row=_monthlyData.find(r=>r.period===period);
+  if(!row) return;
+  const isCur=period===S.sheet;
+  const curSpent=catSpending();
+  const modal=document.getElementById('periodModal');
+  const content=document.getElementById('period-modal-content');
+  if(!modal||!content) return;
+
+  const budget=isCur?S.budget:(parseFloat(row.budget)||S.budget);
+  const total=parseFloat(row.total)||0;
+  const cc=parseFloat(row.cc)||0;
+  const dd=parseFloat(row.dd)||0;
+  const saving=isCur?(S.budget-total):(parseFloat(row.saving)||0);
+
+  // Compare to current if not current
+  const curRow=_monthlyData.find(r=>r.period===S.sheet);
+  const curTotal=curRow?parseFloat(curRow.total)||0:0;
+
+  const row2=function(label,val,cval,isChf=true,invertGood=false){
+    const fmt=v=>isChf?chf(v):v.toFixed(1)+'%';
+    const diff=val-cval;
+    const diffStr=(diff>0?'+':'')+fmt(diff);
+    const good=invertGood?diff<0:diff>0;
+    const diffColor=diff===0?'var(--muted)':good?'var(--green)':'var(--red)';
+    return '<tr><td style="padding:8px 0;font-family:var(--mono);font-size:11px;color:var(--muted);padding-right:16px">'+label+'</td>'
+      +'<td style="padding:8px 0;font-family:var(--mono);font-size:12px;font-weight:600;text-align:right">'+fmt(val)+'</td>'
+      +(curRow&&!isCur?'<td style="padding:8px 0;font-family:var(--mono);font-size:11px;color:'+diffColor+';text-align:right;padding-left:16px">'+diffStr+' vs now</td>':'')
+      +'</tr>';
+  };
+
+  let html='<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">'+period+(isCur?' · current period':'')+'</div>';
+  html+='<table style="width:100%;border-collapse:collapse">';
+  html+=row2('Budget',budget,isCur?budget:(curRow?S.budget:budget),true,false);
+  html+=row2('Total Spent',total,curTotal,true,true);
+  html+=row2('Net Saving',saving,(curRow?S.budget-curTotal:saving),true,false);
+  html+=row2('Credit Card',cc,(curRow?parseFloat(curRow.cc)||0:cc),true,true);
+  html+=row2('Debit',dd,(curRow?parseFloat(curRow.dd)||0:dd),true,true);
+  html+='</table>';
+
+  // Category breakdown
+  html+='<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 10px">Category Breakdown</div>';
+  html+='<table style="width:100%;border-collapse:collapse">';
+  CATS.filter(c=>c.id!=='refund').forEach(c=>{
+    const val=isCur?(curSpent[c.id]||0):(parseFloat(row[c.id])||0);
+    const cval=curRow?(isCur?0:(curSpent[c.id]||0)):0;
+    if(!val&&!cval) return;
+    const diff=val-cval;
+    const diffColor=diff===0?'var(--muted)':diff>0?'var(--red)':'var(--green)';
+    const diffStr=curRow&&!isCur?(diff>0?'+':'')+chf(diff)+' vs now':'';
+    html+='<tr><td style="padding:6px 0;font-size:12px;padding-right:16px"><span style="color:'+c.color+'">'+c.icon+'</span> '+c.name+'</td>'
+      +'<td style="font-family:var(--mono);font-size:12px;font-weight:600;text-align:right">'+chf(val)+'</td>'
+      +(curRow&&!isCur?'<td style="font-family:var(--mono);font-size:11px;color:'+diffColor+';text-align:right;padding-left:16px">'+diffStr+'</td>':'')
+      +'</tr>';
+  });
+  html+='</table>';
+
+  content.innerHTML=html;
+  modal.classList.add('open');
+}
+
+// ═══════════════════════════════════════
+//  EXPORT TO CSV
+// ═══════════════════════════════════════
+function exportCSV(type){
+  const entries=(type==='CC'?S.cc:S.dd);
+  if(!entries.length){toast('No entries to export','e');return;}
+  const header='Date,Description,Category,Amount,Running';
+  const rows=entries.map(e=>[
+    e.date||'',
+    '"'+(e.desc||'').replace(/"/g,'""')+'"',
+    e.cat||'',
+    parseFloat(e.amount||0).toFixed(2),
+    parseFloat(e.running||0).toFixed(2)
+  ].join(','));
+  const csv=[header,...rows].join('
+');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=S.sheet+'_'+(type==='CC'?'CreditCard':'Debit')+'.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('CSV downloaded ✓');
 }
 
 function renderAll(){ renderDash(); renderLists(); renderDashCats(); renderCatDetail(); renderCharts(); refreshSuggestions(); if(document.getElementById('v-insights').classList.contains('on')) renderInsights(); }
@@ -1607,7 +1713,7 @@ function renderMonthly(data){
       if(cur){const v=curSpent[c.id]||0;return '<td class="num" style="color:'+c.color+'">'+(v>0?chf(v):'—')+'</td>';}
       return '<td class="num" style="color:var(--dim)">—</td>';
     }).join('');
-    return '<tr '+(cur?'style="background:rgba(74,222,128,.07)"':'')+'>'
+    return '<tr style="cursor:pointer;'+(cur?'background:rgba(61,214,140,.07)':'')+'" onclick="openPeriodComparison(\''+r.period+'\')">'
       +'<td><span class="chip '+(cur?'cur':'')+'">'+r.period+'</span></td>'
       +'<td class="num">'+chf(budget)+'</td>'
       +'<td class="num">'+chf(r.cc)+'</td>'
