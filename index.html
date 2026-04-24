@@ -1375,8 +1375,7 @@ function exportCSV(type){
     parseFloat(e.amount||0).toFixed(2),
     parseFloat(e.running||0).toFixed(2)
   ].join(','));
-  const csv=[header,...rows].join('
-');
+  const csv=[header,...rows].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
