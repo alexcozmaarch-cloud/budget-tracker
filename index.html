@@ -1246,10 +1246,10 @@ function eRowHTML(e,type){
   const neg=e.amount<0;
   const c=e.cat?catById(e.cat):null;
   const chip=c&&e.cat?`<span class="cat-chip" style="background:${c.bg};color:${c.color}">${c.icon} ${c.name}</span>`:'';
-  const safeDesc=e.desc.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+  const safeDesc=String(e.desc??'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
   return `<div class="erow">
     <span class="edate">${(e.date||'').slice(5)}</span>
-    <span class="edesc"><span class="edesc-txt" title="${e.desc}">${e.desc}</span>${chip}</span>
+    <span class="edesc"><span class="edesc-txt" title="${e.desc??''}">${e.desc??''}</span>${chip}</span>
     <span class="eamt ${neg?'cr':''}">${parseFloat(e.amount).toFixed(2)}</span>
     <span class="erun">${parseFloat(e.running).toFixed(2)}</span>
     <span class="edel">
@@ -1498,7 +1498,7 @@ function openEdit(type,row,date,desc,cat,amount){
   sel.innerHTML='<option value="">— no category —</option>'+CATS.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
   sel.value=cat||'';
   // populate suggestions for edit modal from all entries
-  updateSuggestions('desc-suggestions', [...S.cc,...S.dd].map(e=>e.desc));
+  updateSuggestions('desc-suggestions', [...S.cc,...S.dd].map(e=>e.desc??''));
   document.getElementById('editModal').classList.add('open');
 }
 
@@ -1533,8 +1533,8 @@ function updateSuggestions(listId, descs){
 }
 
 function refreshSuggestions(){
-  updateSuggestions('cc-desc-list', S.cc.map(e=>e.desc));
-  updateSuggestions('dd-desc-list', S.dd.map(e=>e.desc));
+  updateSuggestions('cc-desc-list', S.cc.map(e=>e.desc??''));
+  updateSuggestions('dd-desc-list', S.dd.map(e=>e.desc??''));
 }
 
 function filterList(type){
