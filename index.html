@@ -1205,25 +1205,8 @@ async function addExp(type){
   finally{ btn.disabled=false; }
 }
 
-let _pendingDel={type:null,row:null,timer:null};
 async function delExp(btn,type,row){
-
-  if(_pendingDel.type===type&&_pendingDel.row===row){
-    // second click — confirmed
-    clearTimeout(_pendingDel.timer);
-    _pendingDel={type:null,row:null,timer:null};
-    btn.textContent='×'; btn.style.color='';
-  } else {
-    // first click — arm it
-    if(_pendingDel.timer) clearTimeout(_pendingDel.timer);
-    _pendingDel={type,row,timer:setTimeout(()=>{
-      _pendingDel={type:null,row:null,timer:null};
-      // reset any armed button
-      document.querySelectorAll('.del-btn.armed').forEach(b=>{b.textContent='×';b.classList.remove('armed');b.style.color='';});
-    },2500)};
-    btn.textContent='?'; btn.style.color='var(--red)'; btn.classList.add('armed');
-    return;
-  }
+  if(!confirm('Delete this entry?')) return;
   toast('Deleting…','l');
   try{
     const res=await apiPost({action:'deleteExpense',sheet:S.sheet,type,row});
