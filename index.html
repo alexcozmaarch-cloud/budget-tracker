@@ -1206,8 +1206,8 @@ async function addExp(type){
 }
 
 let _pendingDel={type:null,row:null,timer:null};
-async function delExp(type,row){
-  const btn=event.currentTarget;
+async function delExp(btn,type,row){
+
   if(_pendingDel.type===type&&_pendingDel.row===row){
     // second click — confirmed
     clearTimeout(_pendingDel.timer);
@@ -1254,7 +1254,7 @@ function eRowHTML(e,type){
     <span class="erun">${parseFloat(e.running).toFixed(2)}</span>
     <span class="edel">
       <button class="edit-btn" onclick="openEdit('${type}',${e.row},'${e.date||''}','${safeDesc}','${e.cat||''}',${parseFloat(e.amount)})">✎</button>
-      <button class="del-btn" onclick="delExp('${type}',${e.row})">×</button>
+      <button class="del-btn" onclick="delExp(this,'${type}',${e.row})">×</button>
     </span>
   </div>`;
 }
@@ -1488,7 +1488,7 @@ let _editCtx={type:null,row:null};
 function openEdit(type,row,date,desc,cat,amount){
   _editCtx={type,row};
   document.getElementById('edit-date').value=date;
-  document.getElementById('edit-desc').value=desc;
+  const _ta=document.createElement('textarea');_ta.innerHTML=desc;document.getElementById('edit-desc').value=_ta.value;
   const isRefund=parseFloat(amount)<0;
   document.getElementById('edit-amt').value=Math.abs(parseFloat(amount)||0);
   const etSel=document.getElementById('edit-type');
@@ -1527,7 +1527,7 @@ async function saveEdit(){
 }
 
 function updateSuggestions(listId, descs){
-  const uniq=[...new Set(descs.filter(Boolean))].sort();
+  const uniq=[...new Set(descs.map(d=>String(d??'')).filter(Boolean))].sort();
   const dl=document.getElementById(listId);
   if(dl) dl.innerHTML=uniq.map(d=>`<option value="${d.replace(/"/g,'&quot;')}">`).join('');
 }
